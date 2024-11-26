@@ -567,3 +567,43 @@ input {
   width: 0;
   height: 0;
 }
+
+/* Tambahkan media queries untuk tampilan mobile */
+@media screen and (max-width: 768px) {
+  .word-display {
+    width: 95%;
+    margin: 0 auto;
+  }
+
+  .word-rows {
+    font-size: 14px; /* Ukuran font lebih kecil untuk mobile */
+  }
+
+  .word-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+    padding: 0 5px;
+  }
+
+  .word {
+    margin-right: 4px;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .word-rows {
+    font-size: 12px; /* Ukuran font lebih kecil lagi untuk layar sangat kecil */
+  }
+
+  .header {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .settings {
+    width: 100%;
+    justify-content: center;
+  }
+}
