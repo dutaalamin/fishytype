@@ -557,7 +557,7 @@ function App() {
       </div>
 
       <div className="footer">
-        <div className="hint">tab - restart test</div>
+        <div className="hint">tab - restart</div>
         <div className="stats-detail">
           <div>raw: {rawWpm}</div>
           <div>chars: {correctChars}/{incorrectChars}</div>
