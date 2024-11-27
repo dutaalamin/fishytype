@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import './App.css';
+import logoImage from './images/logo.png';
 
 function App() {
   const [text, setText] = useState('');
