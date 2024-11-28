@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import './App.css';
-import logoImage from './images/logo.png';
 
 function App() {
   const [text, setText] = useState('');
@@ -226,13 +225,17 @@ function App() {
   };
 
   const generateWordList = useCallback(() => {
+    const isMobile = window.innerWidth <= 768;
+    const wordCount = isMobile ? 10 : 30; // Mengurangi jumlah kata untuk mobile
+    const wordsPerRow = isMobile ? 3 : 10; // Mengurangi kata per baris untuk mobile
+    
     const shuffled = [...wordDatabase]
       .sort(() => Math.random() - 0.5)
-      .slice(0, 30); // Tetap 30 kata untuk menjaga 3 baris yang rapi
+      .slice(0, wordCount);
     
     const rows = [];
-    for (let i = 0; i < shuffled.length; i += 10) {
-      rows.push(shuffled.slice(i, i + 10));
+    for (let i = 0; i < shuffled.length; i += wordsPerRow) {
+      rows.push(shuffled.slice(i, i + wordsPerRow));
     }
     setWordList(rows.flat());
   }, []);
@@ -473,6 +476,16 @@ function App() {
     }
   }, []);
 
+  // Tambahkan useEffect untuk me-regenerate word list saat ukuran layar berubah
+  useEffect(() => {
+    const handleResize = () => {
+      generateWordList();
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [generateWordList]);
+
   return (
     <div className={`typing-test theme-${currentTheme}`}>
       <div className="header">
@@ -558,24 +571,16 @@ function App() {
       </div>
 
       <div className="footer">
-        <div className="hint">tab - restart</div>
+        <div className="hint">
+          <button className="restart-button" onClick={restartTest}>
+            Restart
+          </button>
+        </div>
         <div className="stats-detail">
           <div>raw: {rawWpm}</div>
           <div>chars: {correctChars}/{incorrectChars}</div>
           <div>best: {bestWpm} wpm</div>
         </div>
-        
-        {/* Tambahkan riwayat test jika test selesai */}
-        {!isRunning && timeLeft === 0 && (
-          <div className="test-history">
-            <h3>Riwayat Test Terakhir</h3>
-            <div className="history-stats">
-              <div>WPM: {wpm}</div>
-              <div>Akurasi: {accuracy}%</div>
-              <div>Raw WPM: {rawWpm}</div>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Tambahkan modal hasil */}
