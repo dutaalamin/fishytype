@@ -38,7 +38,9 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
+  margin-bottom: 3rem;
+  position: relative;
+  z-index: 2;
 }
 
 .logo {
@@ -56,6 +58,7 @@ body {
 
 .settings {
   display: flex;
+  align-items: center;
   gap: 1rem;
 }
 
@@ -76,9 +79,13 @@ select:focus {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 60vh;
+  min-height: 50vh;
   width: 100%;
-  margin-top: -2rem;
+  margin-top: 0;
+  padding-top: 2rem;
+  font-size: 1.5rem;
+  line-height: 1.6;
+  padding: 1rem;
 }
 
 .stats-top {
@@ -92,9 +99,10 @@ select:focus {
 .word-display {
   max-width: 1200px;
   width: 85%;
-  margin: 0 auto;
+  margin: 2rem auto 0;
   position: relative;
   font-family: 'JetBrains Mono', monospace;
+  text-align: justify;
 }
 
 .word-rows {
@@ -102,6 +110,7 @@ select:focus {
   flex-direction: column;
   gap: 1.8rem;
   align-items: center;
+  margin-top: -2rem;
 }
 
 .word-row {
@@ -239,17 +248,33 @@ select:focus {
 
 /* Theme Styles */
 .setting-item {
-  background: transparent;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background: var(--sub-alt-color);
   color: var(--sub-color);
   border: none;
-  padding: 0.5rem 1rem;
-  font-size: 1rem;
+  padding: 8px 16px;
+  border-radius: 4px;
   cursor: pointer;
-  transition: all 0.2s;
+  font-family: inherit;
+  font-size: 0.9rem;
+  text-align: center;
 }
 
 .setting-item:hover {
-  color: var(--main-color);
+  background: var(--bg-color);
+  border: 1px solid var(--sub-color);
+}
+
+/* Untuk Firefox */
+.setting-item::-ms-expand {
+  display: none;
+}
+
+/* Untuk IE */
+select::-ms-expand {
+  display: none;
 }
 
 .setting-item option {
@@ -659,4 +684,237 @@ input {
     padding: 6px 12px;
     font-size: 12px;
   }
+}
+
+.theme-search input {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.theme-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.theme-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.theme-item:hover {
+  background: var(--sub-alt-color);
+}
+
+.theme-item.active {
+  background: var(--sub-alt-color);
+}
+
+.theme-name {
+  color: var(--text-color);
+  font-size: 0.9rem;
+}
+
+.theme-colors {
+  display: flex;
+  gap: 4px;
+}
+
+.theme-colors div {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid var(--sub-color);
+}
+
+/* Theme Picker Styles */
+.theme-picker-container {
+  display: flex;
+  justify-content: center;
+  margin: -1rem 0 1rem;
+  position: relative;
+  z-index: 100;
+}
+
+.theme-picker-wrapper {
+  position: relative;
+}
+
+.theme-picker-trigger {
+  background: var(--sub-alt-color);
+  color: var(--sub-color);
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.9rem;
+  min-width: 120px;
+  text-align: left;
+}
+
+.theme-picker-trigger:hover {
+  background: var(--bg-color);
+  border: 1px solid var(--sub-color);
+}
+
+.theme-picker {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 8px;
+  background: var(--bg-color);
+  border: 1px solid var(--sub-color);
+  border-radius: 8px;
+  width: 300px;
+  max-height: 400px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  z-index: 1000;
+  padding: 16px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.theme-list {
+  width: 100%;
+  padding-right: 4px;
+}
+
+.theme-item {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Untuk browser webkit (Chrome, Safari, dll) */
+.theme-picker::-webkit-scrollbar {
+  width: 8px;
+}
+
+.theme-picker::-webkit-scrollbar-track {
+  background: var(--sub-alt-color);
+  border-radius: 4px;
+}
+
+.theme-picker::-webkit-scrollbar-thumb {
+  background: var(--sub-color);
+  border-radius: 4px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .theme-picker-container {
+    margin: -0.5rem 0 0.5rem;
+  }
+  
+  .theme-picker {
+    width: 280px;
+  }
+}
+
+.left-footer {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.restart-icon {
+  background: none;
+  border: none;
+  color: var(--sub-color);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.restart-icon:hover {
+  color: var(--text-color);
+  background: var(--sub-alt-color);
+}
+
+/* Tooltip */
+.restart-icon::after {
+  content: "Restart Test";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-color);
+  color: var(--text-color);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  border: 1px solid var(--sub-color);
+  margin-top: 8px;
+}
+
+.restart-icon:hover::after {
+  opacity: 1;
+  visibility: visible;
+}
+
+.restart-container {
+  display: flex;
+  justify-content: center;
+  margin: 2rem 0;
+  position: relative;
+}
+
+.restart-icon {
+  background: none;
+  border: none;
+  color: var(--sub-color);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.restart-icon:hover {
+  color: var(--text-color);
+  background: var(--sub-alt-color);
+}
+
+/* Tooltip */
+.restart-icon::after {
+  content: "Restart Test";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-color);
+  color: var(--text-color);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  border: 1px solid var(--sub-color);
+  margin-top: 8px;
+}
+
+.restart-icon:hover::after {
+  opacity: 1;
+  visibility: visible;
 }
