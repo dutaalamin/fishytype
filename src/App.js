@@ -10,7 +10,9 @@ function App() {
   const [wordList, setWordList] = useState([]);
   const [hasStartedTyping, setHasStartedTyping] = useState(false);
   const [testDuration, setTestDuration] = useState(60);
-  const [currentTheme, setCurrentTheme] = useState('default');
+  const [currentTheme, setCurrentTheme] = useState('classic');
+  const [searchTerm, setSearchTerm] = useState('');
+  
   
   // Statistik detail
   const [wpm, setWpm] = useState(0);
@@ -37,62 +39,61 @@ function App() {
   // Di bagian atas komponen, tambahkan state timer
   const [timer, setTimer] = useState(null);
 
+  // Tambahkan state untuk mengontrol visibility theme picker
+  const [showThemePicker, setShowThemePicker] = useState(false);
+
   const wordDatabase = [
-    // Kata kerja sehari-hari
-    'pergi', 'datang', 'lihat', 'buat', 'ambil', 'makan', 'minum', 'tidur', 'bangun', 'berjalan',
-    'berlari', 'duduk', 'berdiri', 'bicara', 'dengar', 'pikir', 'rasa', 'ingin', 'dapat', 'harus',
-    'belajar', 'bekerja', 'menulis', 'membaca', 'bermain', 'tertawa', 'menangis', 'tersenyum', 'melompat', 'bernyanyi',
+    // Common verbs
+    'go', 'come', 'see', 'make', 'take', 'eat', 'drink', 'sleep', 'wake', 'walk',
+    'run', 'sit', 'stand', 'talk', 'hear', 'think', 'feel', 'want', 'can', 'must',
+    'learn', 'work', 'write', 'read', 'play', 'laugh', 'cry', 'smile', 'jump', 'sing',
     
-    // Kata benda sehari-hari
-    'rumah', 'mobil', 'buku', 'meja', 'kursi', 'pintu', 'jendela', 'tempat', 'waktu', 'hari',
-    'bulan', 'tahun', 'pagi', 'siang', 'malam', 'makanan', 'minuman', 'pakaian', 'uang', 'kerja',
-    'sepatu', 'tas', 'topi', 'kaca', 'lampu', 'televisi', 'radio', 'telepon', 'koran', 'majalah',
+    // Common nouns
+    'house', 'car', 'book', 'table', 'chair', 'door', 'window', 'place', 'time', 'day',
+    'month', 'year', 'morning', 'noon', 'night', 'food', 'drink', 'clothes', 'money', 'work',
+    'shoes', 'bag', 'hat', 'glass', 'lamp', 'phone', 'radio', 'paper', 'news', 'magazine',
     
-    // Kata sifat umum
-    'baik', 'buruk', 'besar', 'kecil', 'tinggi', 'rendah', 'panas', 'dingin', 'cepat', 'lambat',
-    'keras', 'lembut', 'baru', 'lama', 'mudah', 'sulit', 'senang', 'sedih', 'marah', 'takut',
-    'indah', 'cantik', 'tampan', 'jelek', 'kasar', 'halus', 'terang', 'gelap', 'kuat', 'lemah',
+    // Common adjectives
+    'good', 'bad', 'big', 'small', 'high', 'low', 'hot', 'cold', 'fast', 'slow',
+    'hard', 'soft', 'new', 'old', 'easy', 'hard', 'happy', 'sad', 'angry', 'afraid',
+    'beautiful', 'pretty', 'handsome', 'ugly', 'rough', 'smooth', 'bright', 'dark', 'strong', 'weak',
     
-    // Kata penghubung
-    'dan', 'atau', 'tetapi', 'karena', 'untuk', 'dengan', 'dari', 'ke', 'di', 'pada',
-    'dalam', 'tentang', 'seperti', 'jika', 'bila', 'ketika', 'setelah', 'sebelum', 'saat', 'sambil',
+    // Common prepositions
+    'in', 'on', 'at', 'to', 'for', 'with', 'from', 'by', 'into', 'onto',
+    'about', 'like', 'through', 'after', 'before', 'between', 'under', 'over', 'behind', 'beside',
     
-    // Kata ganti
-    'saya', 'anda', 'kamu', 'dia', 'mereka', 'kita', 'kami', 'ini', 'itu', 'siapa',
-    'apa', 'mana', 'kapan', 'mengapa', 'bagaimana', 'dimana', 'kemana', 'berapa', 'yang', 'tersebut',
+    // Common pronouns
+    'I', 'you', 'he', 'she', 'it', 'we', 'they', 'this', 'that', 'who',
+    'what', 'which', 'when', 'why', 'how', 'where', 'whose', 'whom', 'these', 'those',
     
-    // Kata keterangan waktu
-    'sekarang', 'nanti', 'tadi', 'kemarin', 'besok', 'lusa', 'dulu', 'segera', 'selalu', 'sering',
-    'jarang', 'kadang', 'pernah', 'belum', 'sudah', 'akan', 'sedang', 'masih', 'sempat', 'lagi',
+    // Time words
+    'now', 'later', 'soon', 'today', 'tomorrow', 'yesterday', 'always', 'never', 'often', 'sometimes',
+    'rarely', 'weekly', 'daily', 'monthly', 'yearly', 'early', 'late', 'again', 'once', 'twice',
     
-    // Kata bilangan
-    'satu', 'dua', 'tiga', 'empat', 'lima', 'enam', 'tujuh', 'delapan', 'sembilan', 'sepuluh',
-    'banyak', 'sedikit', 'semua', 'beberapa', 'sebagian', 'setengah', 'pertama', 'kedua', 'ketiga', 'terakhir',
+    // Numbers and quantities
+    'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten',
+    'many', 'few', 'all', 'some', 'most', 'half', 'first', 'second', 'third', 'last',
     
-    // Kata sapaan dan kesopanan
-    'tolong', 'maaf', 'terima', 'kasih', 'silakan', 'permisi', 'selamat', 'sampai', 'jumpa', 'halo',
-    'hai', 'pagi', 'siang', 'sore', 'malam', 'ya', 'tidak', 'mungkin', 'boleh', 'bisa',
+    // Common phrases
+    'please', 'sorry', 'thank', 'you', 'hello', 'bye', 'welcome', 'excuse', 'pardon', 'okay',
+    'yes', 'no', 'maybe', 'sure', 'right', 'wrong', 'true', 'false', 'good', 'bad',
     
-    // Tempat umum
-    'kantor', 'sekolah', 'pasar', 'toko', 'bank', 'rumah', 'sakit', 'stasiun', 'bandara', 'terminal',
-    'mall', 'taman', 'pantai', 'gunung', 'desa', 'kota', 'jalan', 'kamar', 'dapur', 'ruang',
+    // Places
+    'office', 'school', 'market', 'store', 'bank', 'home', 'hospital', 'station', 'airport', 'hotel',
+    'mall', 'park', 'beach', 'mountain', 'city', 'town', 'street', 'room', 'kitchen', 'space',
     
-    // Anggota keluarga
-    'ayah', 'ibu', 'kakak', 'adik', 'nenek', 'kakek', 'paman', 'bibi', 'sepupu', 'keluarga',
+    // Technology
+    'computer', 'phone', 'tablet', 'screen', 'mouse', 'keyboard', 'internet', 'email', 'website', 'app',
+    'data', 'file', 'folder', 'program', 'system', 'network', 'cloud', 'code', 'game', 'video',
     
-    // Cuaca dan alam
-    'hujan', 'panas', 'angin', 'awan', 'langit', 'bintang', 'bulan', 'matahari', 'laut', 'sungai',
-    
-    // Makanan dan minuman
-    'nasi', 'roti', 'sayur', 'buah', 'daging', 'ikan', 'susu', 'air', 'kopi', 'teh',
-    
-    // Warna
-    'merah', 'biru', 'hijau', 'kuning', 'putih', 'hitam', 'coklat', 'ungu', 'abu', 'jingga'
+    // Business
+    'meeting', 'project', 'client', 'report', 'budget', 'market', 'sales', 'team', 'goal', 'plan',
+    'strategy', 'success', 'growth', 'value', 'cost', 'price', 'deal', 'task', 'time', 'work'
   ];
 
   const themes = {
-    default: {
-      name: 'default',
+    classic: {
+      name: 'classic',
       background: '#323437',
       text: '#d1d0c5',
       primary: '#e2b714',
@@ -102,20 +103,22 @@ function App() {
       subAlt: '#2c2e31',
       errorExtra: '#7e2a33',
       colorfulError: '#e2b714',
-      colorfulErrorExtra: '#8f7425'
+      colorfulErrorExtra: '#8f7425',
+      highlight: '#ffcc00',
+      shadow: '#1a1a1a'
     },
     ocean: {
       name: 'ocean',
-      background: '#1a1a2e',
-      text: '#e9f1f7',
-      primary: '#4fb0c6',
-      error: '#ff4757',
-      caret: '#4fb0c6',
-      sub: '#8d93ab',
-      subAlt: '#16213e',
-      errorExtra: '#8b1e27',
-      colorfulError: '#4fb0c6',
-      colorfulErrorExtra: '#2d6975'
+      background: '#1b2b34',
+      text: '#d8dee9',
+      primary: '#6699cc',
+      error: '#ec5f67',
+      caret: '#6699cc',
+      sub: '#4f5b66',
+      subAlt: '#161e23',
+      errorExtra: '#bc4c52',
+      colorfulError: '#6699cc',
+      colorfulErrorExtra: '#527aa3'
     },
     forest: {
       name: 'forest',
@@ -209,7 +212,7 @@ function App() {
       colorfulError: '#f4a261',
       colorfulErrorExtra: '#e07a5f'
     },
-    witchGirl: {
+    witch_girl: {
       name: 'witch girl',
       background: '#2b2d42',
       text: '#edf2f4',
@@ -221,6 +224,188 @@ function App() {
       errorExtra: '#ef233c',
       colorfulError: '#d90429',
       colorfulErrorExtra: '#ef233c'
+    },
+    candy: {
+      name: 'candy',
+      background: '#ffecf1',
+      text: '#4a4459',
+      primary: '#ff6b9f',
+      error: '#ff4757',
+      caret: '#ff6b9f',
+      sub: '#8b7997',
+      subAlt: '#f7dfe7',
+      errorExtra: '#cf3a48',
+      colorfulError: '#ff6b9f',
+      colorfulErrorExtra: '#cc567f'
+    },
+    sunset: {
+      name: 'sunset',
+      background: '#1a1a2e',
+      text: '#ffd460',
+      primary: '#ff6b6b',
+      error: '#ee5253',
+      caret: '#ff6b6b',
+      sub: '#706fd3',
+      subAlt: '#16162a',
+      errorExtra: '#c41e3a',
+      colorfulError: '#ff6b6b',
+      colorfulErrorExtra: '#cc5555'
+    },
+    rainbow: {
+      name: 'rainbow',
+      background: '#2d132c',
+      text: '#ff9de6',
+      primary: '#4deeea',
+      error: '#ff1493',
+      caret: '#4deeea',
+      sub: '#9b4f96',
+      subAlt: '#251026',
+      errorExtra: '#cc1076',
+      colorfulError: '#4deeea',
+      colorfulErrorExtra: '#3ebebb'
+    },
+    neon: {
+      name: 'neon',
+      background: '#000000',
+      text: '#00ff00',
+      primary: '#ff00ff',
+      error: '#ff0000',
+      caret: '#00ffff',
+      sub: '#008800',
+      subAlt: '#0a0a0a',
+      errorExtra: '#cc0000',
+      colorfulError: '#00ffff',
+      colorfulErrorExtra: '#00cccc'
+    },
+    retro_wave: {
+      name: 'retro wave',
+      background: '#1a1a2e',
+      text: '#ff00ff',
+      primary: '#00ffff',
+      error: '#ff0055',
+      caret: '#00ffff',
+      sub: '#7b2cbf',
+      subAlt: '#16162a',
+      errorExtra: '#cc0044',
+      colorfulError: '#00ffff',
+      colorfulErrorExtra: '#00cccc'
+    },
+    cotton_candy: {
+      name: 'cotton candy',
+      background: '#fae3ff',
+      text: '#6c567b',
+      primary: '#ff70a6',
+      error: '#ff4081',
+      caret: '#ff70a6',
+      sub: '#b39ddb',
+      subAlt: '#f5d5ff',
+      errorExtra: '#cc3366',
+      colorfulError: '#ff70a6',
+      colorfulErrorExtra: '#cc5985'
+    },
+    unicorn: {
+      name: 'unicorn',
+      background: '#6c5ce7',
+      text: '#ffeaa7',
+      primary: '#ff79c6',
+      error: '#ff0066',
+      caret: '#ff79c6',
+      sub: '#a29bfe',
+      subAlt: '#5f52cc',
+      errorExtra: '#cc0052',
+      colorfulError: '#ff79c6',
+      colorfulErrorExtra: '#cc619e'
+    },
+    galaxy: {
+      name: 'galaxy',
+      background: '#0c0c1d',
+      text: '#e2e2ff',
+      primary: '#7f5af0',
+      error: '#ff0055',
+      caret: '#7f5af0',
+      sub: '#4d4d8f',
+      subAlt: '#0a0a18',
+      errorExtra: '#cc0044',
+      colorfulError: '#7f5af0',
+      colorfulErrorExtra: '#6548c0'
+    },
+    bubblegum: {
+      name: 'bubblegum',
+      background: '#ff9ff3',
+      text: '#4a266a',
+      primary: '#ff36ab',
+      error: '#ff0055',
+      caret: '#ff36ab',
+      sub: '#b088c9',
+      subAlt: '#ff8aed',
+      errorExtra: '#cc0044',
+      colorfulError: '#ff36ab',
+      colorfulErrorExtra: '#cc2b89'
+    },
+    coral_reef: {
+      name: 'coral reef',
+      background: '#2b3d4f',
+      text: '#48dbfb',
+      primary: '#ff9ff3',
+      error: '#ff4757',
+      caret: '#ff9ff3',
+      sub: '#45aaf2',
+      subAlt: '#263545',
+      errorExtra: '#cc3a46',
+      colorfulError: '#ff9ff3',
+      colorfulErrorExtra: '#cc7fc2'
+    },
+    coral: {
+      name: 'coral',
+      background: '#1d2021',
+      text: '#f8f8f2',
+      primary: '#ff7f50',
+      error: '#ff5555',
+      caret: '#ff7f50',
+      sub: '#6272a4',
+      subAlt: '#161819',
+      errorExtra: '#cc4444',
+      colorfulError: '#ff7f50',
+      colorfulErrorExtra: '#cc6640'
+    },
+    matrix: {
+      name: 'matrix',
+      background: '#000000',
+      text: '#00ff00',
+      primary: '#008f11',
+      error: '#ff0000',
+      caret: '#00ff00',
+      sub: '#003b00',
+      subAlt: '#001a00',
+      errorExtra: '#800000',
+      colorfulError: '#008f11',
+      colorfulErrorExtra: '#006b0d'
+    },
+    dracula: {
+      name: 'dracula',
+      background: '#282a36',
+      text: '#f8f8f2',
+      primary: '#bd93f9',
+      error: '#ff5555',
+      caret: '#bd93f9',
+      sub: '#6272a4',
+      subAlt: '#21222c',
+      errorExtra: '#cc4444',
+      colorfulError: '#bd93f9',
+      colorfulErrorExtra: '#9674c7'
+    },
+    gruvbox: {
+      name: 'gruvbox',
+      background: '#282828',
+      text: '#ebdbb2',
+      primary: '#b8bb26',
+      error: '#fb4934',
+      caret: '#b8bb26',
+      sub: '#928374',
+      subAlt: '#1d2021',
+      errorExtra: '#cc241d',
+      colorfulError: '#b8bb26',
+      colorfulErrorExtra: '#98971a'
     }
   };
 
@@ -269,6 +454,10 @@ function App() {
   };
 
   const handleKeyDown = (e) => {
+    if (e.key === 'Alt' || e.altKey) {
+      return;
+    }
+
     if (!isRunning && e.key !== 'Tab') {
       setIsRunning(true);
       setHasStartedTyping(true);
@@ -443,6 +632,7 @@ function App() {
           endTest();
           return 0;
         }
+        calculateWPM();
         return prevTime - 1;
       });
     }, 1000);
@@ -491,26 +681,57 @@ function App() {
       <div className="header">
         <div className="logo">fishytype</div>
         <div className="settings">
+          <div className="theme-picker-wrapper">
+            <button 
+              className="theme-picker-trigger"
+              onClick={() => setShowThemePicker(!showThemePicker)}
+            >
+              {currentTheme}
+            </button>
+            
+            {showThemePicker && (
+              <div className="theme-picker">
+                <div className="theme-search">
+                  <input 
+                    type="text" 
+                    placeholder="Search..." 
+                    onChange={(e) => setSearchTerm(e.target.value.toLowerCase())}
+                  />
+                </div>
+                <div className="theme-list">
+                  {Object.keys(themes)
+                    .filter(theme => theme.toLowerCase().includes(searchTerm || ''))
+                    .map(theme => (
+                      <div 
+                        key={theme} 
+                        className={`theme-item ${currentTheme === theme ? 'active' : ''}`}
+                        onClick={() => {
+                          changeTheme(theme);
+                          setShowThemePicker(false);
+                        }}
+                      >
+                        <span className="theme-name">{themes[theme].name}</span>
+                        <div className="theme-colors">
+                          <div style={{ backgroundColor: themes[theme].background }}></div>
+                          <div style={{ backgroundColor: themes[theme].text }}></div>
+                          <div style={{ backgroundColor: themes[theme].primary }}></div>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+          </div>
+
           <select 
+            className="setting-item"
             value={testDuration} 
             onChange={(e) => setTestDuration(Number(e.target.value))}
-            className="setting-item"
           >
             <option value={15}>15s</option>
             <option value={30}>30s</option>
             <option value={60}>60s</option>
             <option value={120}>120s</option>
-          </select>
-          <select 
-            value={currentTheme} 
-            onChange={(e) => changeTheme(e.target.value)}
-            className="setting-item"
-          >
-            {Object.keys(themes).map(theme => (
-              <option key={theme} value={theme}>
-                {themes[theme].name}
-              </option>
-            ))}
           </select>
         </div>
       </div>
@@ -570,12 +791,18 @@ function App() {
         />
       </div>
 
+      <div className="restart-container">
+        <button className="restart-icon" onClick={restartTest}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+            <path d="M21 3v5h-5"/>
+            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+            <path d="M3 21v-5h5"/>
+          </svg>
+        </button>
+      </div>
+
       <div className="footer">
-        <div className="hint">
-          <button className="restart-button" onClick={restartTest}>
-            Restart
-          </button>
-        </div>
         <div className="stats-detail">
           <div>raw: {rawWpm}</div>
           <div>chars: {correctChars}/{incorrectChars}</div>
