@@ -13,18 +13,24 @@ function App() {
   const [currentTheme, setCurrentTheme] = useState('classic');
   const [searchTerm, setSearchTerm] = useState('');
   
-  
-  // Statistik detail
-  const [wpm, setWpm] = useState(0);
-  const [rawWpm, setRawWpm] = useState(0);
-  const [accuracy, setAccuracy] = useState(100);
-  const [correctChars, setCorrectChars] = useState(0);
-  const [incorrectChars, setIncorrectChars] = useState(0);
-  const [missedChars, setMissedChars] = useState(0);
-  const [extraChars, setExtraChars] = useState(0);
-  const [currentWordErrors, setCurrentWordErrors] = useState([]);
-  const [currentCharErrors, setCurrentCharErrors] = useState([]);
-  const [typedChars, setTypedChars] = useState([]);
+  // Replace the statistics state declarations with:
+  const [stats, setStats] = useState({
+    wpm: 0,
+    rawWpm: 0,
+    accuracy: 100,
+    characters: {
+      correct: 0,
+      incorrect: 0,
+      total: 0,
+      typed: []
+    },
+    errors: {
+      words: [],
+      chars: [],
+      missed: 0,
+      extra: 0
+    }
+  });
 
   // Tambahkan state baru untuk riwayat hasil
   const [testHistory, setTestHistory] = useState([]);
@@ -35,9 +41,6 @@ function App() {
 
   const inputRef = useRef(null);
   const caretRef = useRef(null);
-
-  // Di bagian atas komponen, tambahkan state timer
-  const [timer, setTimer] = useState(null);
 
   // Tambahkan state untuk mengontrol visibility theme picker
   const [showThemePicker, setShowThemePicker] = useState(false);
@@ -429,29 +432,32 @@ function App() {
     generateWordList();
   }, [generateWordList]);
 
-  useEffect(() => {
-    if (isRunning && timeLeft > 0 && hasStartedTyping) {
-      const timer = setInterval(() => {
-        setTimeLeft(prev => prev - 1);
-        calculateWPM();
-      }, 1000);
-      return () => clearInterval(timer);
-    } else if (timeLeft === 0) {
-      endTest();
-    }
-  }, [isRunning, timeLeft, hasStartedTyping]);
+  // Update the calculateWPM function:
+  const calculateWPM = useCallback(() => {
+    const timeElapsed = (testDuration - timeLeft) / 60; // in minutes
+    if (timeElapsed <= 0) return;
 
-  const calculateWPM = () => {
-    const minutes = (testDuration - timeLeft) / 60;
-    if (minutes === 0) return;
+    const { characters } = stats;
+    // Calculate gross WPM (all keystrokes)
+    const grossWPM = Math.round((characters.correct + characters.incorrect) / 5 / timeElapsed);
     
-    const totalChars = correctChars + incorrectChars;
-    const rawWPM = Math.round((totalChars / 5) / minutes);
-    const netWPM = Math.round(((correctChars / 5) / minutes) * (accuracy / 100));
+    // Calculate net WPM (correct words only)
+    const correctWords = characters.correct / 5;
+    const errors = characters.incorrect / 5;
+    const netWPM = Math.max(Math.round(correctWords / timeElapsed - errors), 0);
     
-    setRawWpm(rawWPM);
-    setWpm(netWPM);
-  };
+    // Calculate accuracy
+    const accuracyValue = characters.total > 0 
+      ? Math.round((characters.correct / characters.total) * 100) 
+      : 100;
+
+    setStats(prev => ({
+      ...prev,
+      wpm: netWPM,
+      rawWpm: grossWPM,
+      accuracy: accuracyValue
+    }));
+  }, [stats, timeLeft, testDuration]);
 
   const handleKeyDown = (e) => {
     if (e.key === 'Alt' || e.altKey) {
@@ -464,13 +470,25 @@ function App() {
       startTimer();
     }
 
-    // Handle backspace
+    // Handle backspace with proper character tracking
     if (e.key === 'Backspace') {
       e.preventDefault();
       if (currentCharIndex > 0) {
+        const lastCharIndex = currentCharIndex - 1;
+        const currentWord = wordList[currentWordIndex];
+        const wasCorrect = currentWord[lastCharIndex] === stats.characters.typed[lastCharIndex];
+        
         setCurrentCharIndex(prev => prev - 1);
-        setTypedChars(prev => prev.slice(0, -1));
-        setCurrentCharErrors(prev => prev.filter(err => err !== currentCharIndex - 1));
+        setStats(prev => ({
+          ...prev,
+          characters: {
+            ...prev.characters,
+            typed: prev.characters.typed.slice(0, -1),
+            correct: wasCorrect ? prev.characters.correct - 1 : prev.characters.correct,
+            incorrect: wasCorrect ? prev.characters.incorrect : prev.characters.incorrect - 1,
+            total: prev.characters.total - 1
+          }
+        }));
       }
       return;
     }
@@ -479,7 +497,7 @@ function App() {
     if (e.key === ' ') {
       e.preventDefault();
       const currentWord = wordList[currentWordIndex];
-      const typedWord = typedChars.join('');
+      const typedWord = stats.characters.typed.join('');
       
       if (typedWord.length === 0) return; // Mencegah spasi di awal kata
       
@@ -495,24 +513,25 @@ function App() {
       if (currentCharIndex < currentWord.length) {
         const isCorrect = e.key === currentWord[currentCharIndex];
         
-        // Update statistik
-        if (isCorrect) {
-          setCorrectChars(prev => prev + 1);
-        } else {
-          setIncorrectChars(prev => prev + 1);
-        }
-        
-        if (!isCorrect) {
-          setCurrentCharErrors(prev => [...prev, currentCharIndex]);
-        }
-        setTypedChars(prev => [...prev, e.key]);
+        setStats(prev => ({
+          ...prev,
+          characters: {
+            ...prev.characters,
+            correct: prev.characters.correct + (isCorrect ? 1 : 0),
+            incorrect: prev.characters.incorrect + (isCorrect ? 0 : 1),
+            total: prev.characters.total + 1,
+            typed: [...prev.characters.typed, e.key]
+          },
+          errors: {
+            ...prev.errors,
+            chars: isCorrect 
+              ? prev.errors.chars 
+              : [...prev.errors.chars, currentCharIndex]
+          }
+        }));
+
         setCurrentCharIndex(prev => prev + 1);
         
-        // Update akurasi
-        const totalChars = correctChars + incorrectChars + 1;
-        const newAccuracy = Math.round((correctChars + (isCorrect ? 1 : 0)) / totalChars * 100);
-        setAccuracy(newAccuracy);
-
         if (!hasStartedTyping) {
           setHasStartedTyping(true);
           startTimer();
@@ -530,24 +549,33 @@ function App() {
     }
     
     setCurrentCharIndex(0);
-    setCurrentCharErrors([]);
-    setTypedChars([]);
+    setStats(prev => ({
+      ...prev,
+      errors: {
+        ...prev.errors,
+        chars: []
+      },
+      characters: {
+        ...prev.characters,
+        typed: []
+      }
+    }));
   };
 
   // Tambahkan fungsi untuk menyimpan riwayat test
   const saveTestResult = () => {
     const result = {
       date: new Date(),
-      wpm,
-      rawWpm,
-      accuracy,
-      correctChars,
-      incorrectChars,
+      wpm: stats.wpm,
+      rawWpm: stats.rawWpm,
+      accuracy: stats.accuracy,
+      correctChars: stats.characters.correct,
+      incorrectChars: stats.characters.incorrect,
       duration: testDuration
     };
     setTestHistory(prev => [...prev, result]);
-    if (wpm > bestWpm) {
-      setBestWpm(wpm);
+    if (stats.wpm > bestWpm) {
+      setBestWpm(stats.wpm);
     }
   };
 
@@ -557,10 +585,10 @@ function App() {
     calculateWPM();
     
     // Update best WPM
-    if (wpm > bestWpm) {
-      setBestWpm(wpm);
+    if (stats.wpm > bestWpm) {
+      setBestWpm(stats.wpm);
       // Opsional: simpan ke localStorage
-      localStorage.setItem('bestWpm', wpm.toString());
+      localStorage.setItem('bestWpm', stats.wpm.toString());
     }
     
     saveTestResult();
@@ -573,6 +601,7 @@ function App() {
     restartTest();
   };
 
+  // Update reset logic in restartTest:
   const restartTest = () => {
     setText('');
     setTimeLeft(testDuration);
@@ -580,12 +609,23 @@ function App() {
     setHasStartedTyping(false);
     setCurrentWordIndex(0);
     setCurrentCharIndex(0);
-    setWpm(0);
-    setRawWpm(0);
-    setAccuracy(100);
-    setCorrectChars(0);
-    setIncorrectChars(0);
-    setCurrentWordErrors([]);
+    setStats({
+      wpm: 0,
+      rawWpm: 0,
+      accuracy: 100,
+      characters: {
+        correct: 0,
+        incorrect: 0,
+        total: 0,
+        typed: []
+      },
+      errors: {
+        words: [],
+        chars: [],
+        missed: 0,
+        extra: 0
+      }
+    });
     generateWordList();
     inputRef.current?.focus();
   };
@@ -621,41 +661,46 @@ function App() {
     return () => window.removeEventListener('click', handleFocusLoss);
   }, [isRunning, hasStartedTyping]);
 
-  // Tambahkan fungsi startTimer
+  // Modifikasi fungsi startTimer
   const startTimer = () => {
-    if (timer) return;
-    
-    const newTimer = setInterval(() => {
-      setTimeLeft((prevTime) => {
-        if (prevTime <= 1) {
-          clearInterval(newTimer);
-          endTest();
-          return 0;
-        }
-        calculateWPM();
-        return prevTime - 1;
-      });
-    }, 1000);
-    
-    setTimer(newTimer);
+    setTimeLeft(testDuration);
     setIsRunning(true);
+    setHasStartedTyping(true);
   };
 
-  // Cleanup timer saat component unmount
+  // Tambahkan useEffect untuk timer
   useEffect(() => {
+    let intervalId = null;
+    
+    if (isRunning && hasStartedTyping) {
+      intervalId = setInterval(() => {
+        setTimeLeft((prev) => {
+          if (prev <= 1) {
+            clearInterval(intervalId);
+            endTest();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+  
     return () => {
-      if (timer) {
-        clearInterval(timer);
+      if (intervalId) {
+        clearInterval(intervalId);
       }
     };
-  }, [timer]);
+  }, [isRunning, hasStartedTyping]);
 
   // Tambahkan useEffect untuk memperbarui WPM secara real-time
   useEffect(() => {
     if (isRunning && hasStartedTyping) {
-      calculateWPM();
+      const updateTimer = setTimeout(() => {
+        calculateWPM();
+      }, 500); // Update lebih sering (setiap 500ms) untuk animasi yang lebih smooth
+      return () => clearTimeout(updateTimer);
     }
-  }, [correctChars, incorrectChars, timeLeft]); // Tambahkan dependencies
+  }, [stats.characters.correct, stats.characters.incorrect, timeLeft, isRunning, hasStartedTyping, testDuration]); // Tambahkan dependencies
 
   // Tambahkan useEffect untuk memperbarui best WPM dari localStorage
   useEffect(() => {
@@ -758,7 +803,7 @@ function App() {
                         key={`${char}-${charIdx}`}
                         className={`char 
                           ${wordIdx + rowIndex * 10 === currentWordIndex && charIdx === currentCharIndex ? 'caret' : ''}
-                          ${wordIdx + rowIndex * 10 === currentWordIndex && currentWordErrors.includes(charIdx) ? 'error' : ''}
+                          ${wordIdx + rowIndex * 10 === currentWordIndex && stats.errors.chars.includes(charIdx) ? 'error' : ''}
                           ${wordIdx + rowIndex * 10 < currentWordIndex ? 'typed' : ''}`
                         }
                       >
@@ -804,59 +849,51 @@ function App() {
 
       <div className="footer">
         <div className="stats-detail">
-          <div>raw: {rawWpm}</div>
-          <div>chars: {correctChars}/{incorrectChars}</div>
+          <div>raw: {stats.rawWpm}</div>
+          <div>chars: {stats.characters.correct}/{stats.characters.incorrect}</div>
           <div>best: {bestWpm} wpm</div>
         </div>
       </div>
 
-      {/* Tambahkan modal hasil */}
       {showResults && (
         <div className="results-modal">
           <div className="results-content">
-            <h2>Hasil Test Mengetik</h2>
+            <div className="results-header">
+              <h2>Test Complete</h2>
+              <button className="close-button" onClick={closeResults}>&times;</button>
+            </div>
             
-            <div className="results-stats">
-              <div className="stat-item">
-                <div className="stat-value">{wpm}</div>
+            <div className="stats-container">
+              <div className="main-stat">
                 <div className="stat-label">WPM</div>
+                <div className="stat-value">{stats.wpm}</div>
               </div>
               
-              <div className="stat-item">
-                <div className="stat-value">{rawWpm}</div>
-                <div className="stat-label">Raw WPM</div>
-              </div>
-              
-              <div className="stat-item">
-                <div className="stat-value">{accuracy}%</div>
-                <div className="stat-label">Akurasi</div>
+              <div className="stats-grid">
+                <div className="stat">
+                  <div className="stat-label">Raw</div>
+                  <div className="stat-value">{stats.rawWpm}</div>
+                </div>
+                <div className="stat">
+                  <div className="stat-label">Accuracy</div>
+                  <div className="stat-value">{stats.accuracy}%</div>
+                </div>
+                <div className="stat">
+                  <div className="stat-label">Characters</div>
+                  <div className="stat-value">{stats.characters.correct + stats.characters.incorrect}</div>
+                </div>
               </div>
             </div>
 
-            <div className="detailed-stats">
-              <div className="stat-row">
-                <span>Karakter Benar:</span>
-                <span>{correctChars}</span>
+            {bestWpm > 0 && (
+              <div className="best-score">
+                <span>Best: {bestWpm} WPM</span>
               </div>
-              <div className="stat-row">
-                <span>Karakter Salah:</span>
-                <span>{incorrectChars}</span>
-              </div>
-              <div className="stat-row">
-                <span>Total Karakter:</span>
-                <span>{correctChars + incorrectChars}</span>
-              </div>
-              <div className="stat-row">
-                <span>Durasi Test:</span>
-                <span>{testDuration} detik</span>
-              </div>
-            </div>
+            )}
 
-            <div className="results-actions">
-              <button onClick={closeResults} className="restart-btn">
-                Test Lagi
-              </button>
-            </div>
+            <button onClick={closeResults} className="retry-button">
+              Try Again
+            </button>
           </div>
         </div>
       )}
