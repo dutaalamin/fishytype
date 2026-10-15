@@ -71,6 +71,34 @@ function buildWords() {
   return shuffle(WORDS).slice(0, count);
 }
 
+/* Hitung statistik dari apa yang sudah diketik (kata selesai + kata aktif). */
+function countStats(words, typedByWord, typed, wordIndex) {
+  let correct = 0;
+  let incorrect = 0;
+  let keystrokes = 0;
+
+  const add = (target, attempt) => {
+    const t = target || '';
+    const a = attempt || '';
+    const n = Math.max(t.length, a.length);
+    for (let i = 0; i < n; i++) {
+      if (i >= t.length) {
+        incorrect++; // karakter ekstra
+        continue;
+      }
+      if (i >= a.length) continue; // belum diketik
+      if (a[i] === t[i]) correct++;
+      else incorrect++;
+    }
+    keystrokes += a.length;
+  };
+
+  for (let i = 0; i < wordIndex; i++) add(words[i], typedByWord[i]);
+  add(words[wordIndex], typed);
+
+  return { correct, incorrect, keystrokes };
+}
+
 /* ------------------------------------------------------------------ *
  * App
  * ------------------------------------------------------------------ */
@@ -79,14 +107,11 @@ export default function App() {
   const [words, setWords] = useState([]);
   const [wordIndex, setWordIndex] = useState(0);
   const [typed, setTyped] = useState('');
+  const [typedByWord, setTypedByWord] = useState([]);
 
   const [duration, setDuration] = useState(60);
   const [timeLeft, setTimeLeft] = useState(60);
   const [status, setStatus] = useState('idle'); // idle | running | finished
-
-  const [correctChars, setCorrectChars] = useState(0);
-  const [incorrectChars, setIncorrectChars] = useState(0);
-  const [keystrokes, setKeystrokes] = useState(0);
 
   const [theme, setTheme] = useState('classic');
   const [showThemes, setShowThemes] = useState(false);
@@ -96,8 +121,10 @@ export default function App() {
   const [result, setResult] = useState(null);
 
   const inputRef = useRef(null);
+  const wordsInnerRef = useRef(null);
   const startedAtRef = useRef(0);
   const finishedRef = useRef(false);
+  const [lineOffset, setLineOffset] = useState(0);
 
   /* ---- persistence ---- */
   useEffect(() => {
@@ -123,9 +150,8 @@ export default function App() {
     setWords(buildWords());
     setWordIndex(0);
     setTyped('');
-    setCorrectChars(0);
-    setIncorrectChars(0);
-    setKeystrokes(0);
+    setTypedByWord([]);
+    setLineOffset(0);
     setTimeLeft(duration);
     setStatus('idle');
     setShowResults(false);
@@ -176,11 +202,12 @@ export default function App() {
     finishedRef.current = true;
     setStatus('finished');
 
+    const { correct, incorrect, keystrokes } = countStats(words, typedByWord, typed, wordIndex);
     const minutes = Math.max((duration - timeLeft) / 60, 1 / 60);
-    const totalTyped = correctChars + incorrectChars;
+    const totalTyped = correct + incorrect;
     const raw = Math.round(totalTyped / 5 / minutes);
-    const wpm = Math.round(correctChars / 5 / minutes);
-    const accuracy = keystrokes > 0 ? Math.round((correctChars / keystrokes) * 100) : 100;
+    const wpm = Math.round(correct / 5 / minutes);
+    const accuracy = keystrokes > 0 ? Math.round((correct / keystrokes) * 100) : 100;
 
     const entry = {
       date: Date.now(),
@@ -193,11 +220,26 @@ export default function App() {
     setResult(entry);
     persist([...history, entry]);
     setShowResults(true);
-  }, [duration, timeLeft, correctChars, incorrectChars, keystrokes, history]);
+  }, [duration, timeLeft, words, typedByWord, typed, wordIndex, history]);
 
   useEffect(() => {
     if (status === 'running' && timeLeft === 0) finish();
   }, [status, timeLeft, finish]);
+
+  /* ---- auto-scroll: baru bergeser setelah satu baris penuh (seperti Monkeytype) ---- */
+  useEffect(() => {
+    const inner = wordsInnerRef.current;
+    if (!inner) return;
+    const cur = inner.querySelector('.word.current');
+    if (!cur) return;
+    const top = cur.offsetTop;
+    const lineH = cur.offsetHeight || 1;
+    if (top - lineOffset > lineH + 2) {
+      setLineOffset(top);
+    } else if (top < lineOffset - 2) {
+      setLineOffset(Math.max(0, top));
+    }
+  }, [wordIndex, lineOffset]);
 
   /* ---- typing ---- */
   const startIfNeeded = () => {
@@ -216,19 +258,30 @@ export default function App() {
 
     if (e.key === 'Backspace') {
       e.preventDefault();
-      setTyped((prev) => {
-        if (prev.length === 0) return prev;
-        const ch = prev[prev.length - 1];
-        if (ch === word[prev.length - 1]) setCorrectChars((c) => Math.max(0, c - 1));
-        else setIncorrectChars((c) => Math.max(0, c - 1));
-        return prev.slice(0, -1);
-      });
+      // Masih di kata aktif → hapus karakter
+      if (typed.length > 0) {
+        setTyped((prev) => prev.slice(0, -1));
+        return;
+      }
+      // Sudah di awal kata → kembali ke kata sebelumnya (yang sudah selesai)
+      if (wordIndex > 0) {
+        const prevIdx = wordIndex - 1;
+        setWordIndex(prevIdx);
+        setTyped(typedByWord[prevIdx] ?? '');
+        setTypedByWord((prev) => prev.slice(0, prevIdx));
+      }
       return;
     }
 
     if (e.key === ' ') {
       e.preventDefault();
       if (typed.length === 0) return;
+      // Simpan kata ini (tetap tampil di tempatnya) lalu maju
+      setTypedByWord((prev) => {
+        const next = [...prev];
+        next[wordIndex] = typed;
+        return next;
+      });
       setWordIndex((i) => i + 1);
       setTyped('');
       if (wordIndex >= words.length - 1) {
@@ -238,26 +291,24 @@ export default function App() {
     }
 
     if (e.key.length !== 1) return;
-
     e.preventDefault();
     startIfNeeded();
-    if (typed.length >= word.length) return; // ignore overflow keys
-
-    const expected = word[typed.length];
-    setKeystrokes((k) => k + 1);
-    if (e.key === expected) setCorrectChars((c) => c + 1);
-    else setIncorrectChars((c) => c + 1);
+    if (typed.length >= word.length + 8) return; // batasi karakter ekstra
     setTyped((prev) => prev + e.key);
   };
 
   /* ---- derived ---- */
   const minutes = Math.max((duration - timeLeft) / 60, 1 / 60);
-  const liveWpm = status === 'idle' ? 0 : Math.round(correctChars / 5 / minutes);
+  const liveStats = countStats(words, typedByWord, typed, wordIndex);
+  const liveWpm =
+    status === 'idle' ? 0 : Math.round(liveStats.correct / 5 / minutes);
   const liveAccuracy =
-    keystrokes > 0 ? Math.round((correctChars / keystrokes) * 100) : 100;
+    liveStats.keystrokes > 0
+      ? Math.round((liveStats.correct / liveStats.keystrokes) * 100)
+      : 100;
   const best = history.reduce((m, h) => Math.max(m, h.wpm), 0);
 
-  const visible = words.slice(wordIndex, wordIndex + 30);
+  const visible = words.slice(0, 60);
 
   const activeTheme = THEMES[theme];
 
@@ -333,22 +384,35 @@ export default function App() {
         </div>
 
         <div className="words" aria-live="polite">
-          {visible.map((word, wi) => {
-            const isCurrent = wi === 0;
+          <div
+            className="words-inner"
+            ref={wordsInnerRef}
+            style={{ transform: `translateY(-${lineOffset}px)` }}
+          >
+            {visible.map((word, wi) => {
+            const isCurrent = wi === wordIndex;
+            const isDone = wi < wordIndex;
+            const attempt = isCurrent ? typed : isDone ? typedByWord[wi] ?? '' : '';
+            const chars = word.split('');
+
             return (
               <span
-                key={`${wordIndex}-${wi}-${word}`}
-                className={`word ${isCurrent ? 'current' : ''}`}
+                key={`w-${wi}`}
+                className={`word ${isCurrent ? 'current' : ''} ${
+                  isDone ? 'done' : ''
+                }`}
               >
-                {word.split('').map((char, ci) => {
+                {chars.map((char, ci) => {
                   let cls = 'char';
-                  if (isCurrent) {
-                    if (ci < typed.length) {
-                      cls += typed[ci] === char ? ' ok' : ' bad';
-                    } else if (ci === typed.length) {
+                  if (isDone || isCurrent) {
+                    if (ci < attempt.length) {
+                      cls += attempt[ci] === char ? ' ok' : ' bad';
+                    } else if (isCurrent && ci === attempt.length) {
                       cls += ' caret';
-                    } else {
+                    } else if (isCurrent) {
                       cls += ' pending';
+                    } else {
+                      cls += ' missed';
                     }
                   }
                   return (
@@ -357,12 +421,16 @@ export default function App() {
                     </span>
                   );
                 })}
-                {isCurrent && typed.length > word.length && (
-                  <span className="char extra">{typed.slice(word.length)}</span>
+                {attempt.length > chars.length && (
+                  <span className="char extra">{attempt.slice(chars.length)}</span>
+                )}
+                {isDone && (
+                  <span className={`space-mark ${attempt.length === 0 ? 'skipped' : ''}`} />
                 )}
               </span>
             );
           })}
+          </div>
         </div>
 
         <input
