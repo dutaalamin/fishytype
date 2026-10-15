@@ -9,7 +9,7 @@
 
   --radius: 10px;
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
-  --mono: 'JetBrains Mono', 'Roboto Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --mono: 'Roboto Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 * {
@@ -235,17 +235,17 @@ button {
 .words {
   width: 100%;
   max-width: 1280px;
-  height: calc(3 * 1.4em + 2 * 0.55rem);
+  height: calc(3 * 40px + 2 * 0.55rem);
   overflow: hidden;
-  font-size: clamp(1.4rem, 2.4vw, 2.1rem);
-  line-height: 1.4;
+  font-size: 2rem;
+  line-height: 40px;
 }
 
 .words-inner {
   display: flex;
   flex-wrap: wrap;
   align-content: flex-start;
-  gap: 0.55rem 0.9rem;
+  gap: 11px 19px;
   transition: transform 0.22s var(--ease);
 }
 
@@ -543,7 +543,8 @@ button {
 
   .words {
     font-size: 1.05rem;
-    height: calc(3 * 1.4em + 2 * 0.45rem);
+    line-height: 26px;
+    height: calc(3 * 26px + 2 * 0.45rem);
   }
 
   .words-inner {
