@@ -124,6 +124,7 @@ export default function App() {
   const wordsInnerRef = useRef(null);
   const startedAtRef = useRef(0);
   const finishedRef = useRef(false);
+  const [lineOffset, setLineOffset] = useState(0);
 
   /* ---- persistence ---- */
   useEffect(() => {
@@ -150,6 +151,7 @@ export default function App() {
     setWordIndex(0);
     setTyped('');
     setTypedByWord([]);
+    setLineOffset(0);
     setTimeLeft(duration);
     setStatus('idle');
     setShowResults(false);
@@ -224,6 +226,16 @@ export default function App() {
     if (status === 'running' && timeLeft === 0) finish();
   }, [status, timeLeft, finish]);
 
+  /* ---- scroll per baris: baris kata aktif jadi baris teratas (seperti Monkeytype) ---- */
+  useEffect(() => {
+    const inner = wordsInnerRef.current;
+    if (!inner) return;
+    const cur = inner.querySelector('.word.current');
+    if (!cur) return;
+    const top = cur.offsetTop;
+    if (top !== lineOffset) setLineOffset(top);
+  }, [wordIndex, lineOffset]);
+
   /* ---- typing ---- */
   const startIfNeeded = () => {
     if (status === 'idle') {
@@ -267,7 +279,8 @@ export default function App() {
       });
       setWordIndex((i) => i + 1);
       setTyped('');
-      if (wordIndex >= words.length - 1) {
+      // Jaga buffer: selalu ada cukup kata untuk 3 baris ke depan
+      if (words.length - (wordIndex + 1) < 30) {
         setWords((w) => [...w, ...buildWords()]);
       }
       return;
@@ -367,48 +380,49 @@ export default function App() {
         </div>
 
         <div className="words" aria-live="polite">
-          <div className="words-inner" ref={wordsInnerRef}>
+          <div
+            className="words-inner"
+            ref={wordsInnerRef}
+            style={{ transform: `translateY(-${lineOffset}px)` }}
+          >
             {visible.map((word, wi) => {
-            const isCurrent = wi === wordIndex;
-            const isDone = wi < wordIndex;
-            const attempt = isCurrent ? typed : isDone ? typedByWord[wi] ?? '' : '';
-            const chars = word.split('');
-
-            return (
-              <span
-                key={`w-${wi}`}
-                className={`word ${isCurrent ? 'current' : ''} ${
-                  isDone ? 'done' : ''
-                }`}
-              >
-                {chars.map((char, ci) => {
-                  let cls = 'char';
-                  if (isDone || isCurrent) {
-                    if (ci < attempt.length) {
-                      cls += attempt[ci] === char ? ' ok' : ' bad';
-                    } else if (isCurrent && ci === attempt.length) {
-                      cls += ' caret';
-                    } else if (isCurrent) {
-                      cls += ' pending';
-                    } else {
-                      cls += ' missed';
+              const isCurrent = wi === wordIndex;
+              const isDone = wi < wordIndex;
+              const attempt = isCurrent ? typed : isDone ? typedByWord[wi] ?? '' : '';
+              const chars = word.split('');
+              return (
+                <span
+                  key={`w-${wi}`}
+                  className={`word ${isCurrent ? 'current' : ''} ${isDone ? 'done' : ''}`}
+                >
+                  {chars.map((char, ci) => {
+                    let cls = 'char';
+                    if (isDone || isCurrent) {
+                      if (ci < attempt.length) {
+                        cls += attempt[ci] === char ? ' ok' : ' bad';
+                      } else if (isCurrent && ci === attempt.length) {
+                        cls += ' caret';
+                      } else if (isCurrent) {
+                        cls += ' pending';
+                      } else {
+                        cls += ' missed';
+                      }
                     }
-                  }
-                  return (
-                    <span key={ci} className={cls}>
-                      {char}
-                    </span>
-                  );
-                })}
-                {attempt.length > chars.length && (
-                  <span className="char extra">{attempt.slice(chars.length)}</span>
-                )}
-                {isDone && (
-                  <span className={`space-mark ${attempt.length === 0 ? 'skipped' : ''}`} />
-                )}
-              </span>
-            );
-          })}
+                    return (
+                      <span key={ci} className={cls}>
+                        {char}
+                      </span>
+                    );
+                  })}
+                  {attempt.length > chars.length && (
+                    <span className="char extra">{attempt.slice(chars.length)}</span>
+                  )}
+                  {isDone && (
+                    <span className={`space-mark ${attempt.length === 0 ? 'skipped' : ''}`} />
+                  )}
+                </span>
+              );
+            })}
           </div>
         </div>
 
