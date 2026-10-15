@@ -205,9 +205,9 @@ button {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 2.75rem;
-  padding: 0 clamp(1.25rem, 6vw, 6rem) 3rem;
+  padding: 12vh clamp(1.25rem, 6vw, 6rem) 3rem;
   cursor: text;
 }
 
@@ -235,8 +235,6 @@ button {
 .words {
   width: 100%;
   max-width: 1100px;
-  height: calc(3 * 1.4em + 2 * 0.55rem);
-  overflow: hidden;
   font-size: clamp(1.4rem, 2.4vw, 2.1rem);
   line-height: 1.4;
 }
@@ -246,7 +244,6 @@ button {
   flex-wrap: wrap;
   align-content: flex-start;
   gap: 0.55rem 0.9rem;
-  transition: transform 0.25s var(--ease);
 }
 
 .word {

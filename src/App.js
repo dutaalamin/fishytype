@@ -124,7 +124,6 @@ export default function App() {
   const wordsInnerRef = useRef(null);
   const startedAtRef = useRef(0);
   const finishedRef = useRef(false);
-  const [lineOffset, setLineOffset] = useState(0);
 
   /* ---- persistence ---- */
   useEffect(() => {
@@ -151,7 +150,6 @@ export default function App() {
     setWordIndex(0);
     setTyped('');
     setTypedByWord([]);
-    setLineOffset(0);
     setTimeLeft(duration);
     setStatus('idle');
     setShowResults(false);
@@ -226,21 +224,6 @@ export default function App() {
     if (status === 'running' && timeLeft === 0) finish();
   }, [status, timeLeft, finish]);
 
-  /* ---- auto-scroll: baru bergeser setelah satu baris penuh (seperti Monkeytype) ---- */
-  useEffect(() => {
-    const inner = wordsInnerRef.current;
-    if (!inner) return;
-    const cur = inner.querySelector('.word.current');
-    if (!cur) return;
-    const top = cur.offsetTop;
-    const lineH = cur.offsetHeight || 1;
-    if (top - lineOffset > lineH + 2) {
-      setLineOffset(top);
-    } else if (top < lineOffset - 2) {
-      setLineOffset(Math.max(0, top));
-    }
-  }, [wordIndex, lineOffset]);
-
   /* ---- typing ---- */
   const startIfNeeded = () => {
     if (status === 'idle') {
@@ -308,7 +291,7 @@ export default function App() {
       : 100;
   const best = history.reduce((m, h) => Math.max(m, h.wpm), 0);
 
-  const visible = words.slice(0, 60);
+  const visible = words.slice(0, wordIndex + 40);
 
   const activeTheme = THEMES[theme];
 
@@ -384,11 +367,7 @@ export default function App() {
         </div>
 
         <div className="words" aria-live="polite">
-          <div
-            className="words-inner"
-            ref={wordsInnerRef}
-            style={{ transform: `translateY(-${lineOffset}px)` }}
-          >
+          <div className="words-inner" ref={wordsInnerRef}>
             {visible.map((word, wi) => {
             const isCurrent = wi === wordIndex;
             const isDone = wi < wordIndex;
